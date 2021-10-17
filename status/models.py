@@ -2,7 +2,7 @@ from django.db import models
 from django.conf import settings
 
 def upload_status_image(instance, filename):
-    return "updates/{user}/{filename}".format(user=instance.user, filename=filename)
+    return "status/{user}/{filename}".format(user=instance.user, filename=filename)
 
 class StatusQuerySet(models.QuerySet):
     pass
@@ -28,4 +28,8 @@ class Status(models.Model): #fb status, instagram post, tweet, linkedin post
     class Meta:
         verbose_name = 'Status post'
         verbose_name_plural = 'Status posts'
+
+    @property
+    def owner(self):
+        return self.user
 

@@ -1,9 +1,13 @@
 import json
-from rest_framework import generics, mixins, request
+from re import search
+import requests
+from rest_framework import generics, mixins, request, permissions
 from rest_framework.views import APIView
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 
+from accounts.api.permissions import IsOwnerOrReadOnly
 from status.models import Status
 from .serializers import StatusSerializers
 
@@ -21,8 +25,7 @@ def is_json(json_data):
 
 class StatusAPIDetailView(mixins.UpdateModelMixin,
     mixins.DestroyModelMixin, generics.RetrieveAPIView):
-    permission_classes         = []
-    authentication_classes     = []
+    permission_classes         = [permissions.IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
     serializer_class           = StatusSerializers
     passed_id                  = None
     queryset                   = Status.objects.all()
@@ -45,27 +48,34 @@ class StatusAPIDetailView(mixins.UpdateModelMixin,
     #         return instance.delete()
     #     return None
 
+
+# Login Required mixin / decorator  
 class StatusAPIView(
     mixins.CreateModelMixin,
     mixins.RetrieveModelMixin,
-    mixins.UpdateModelMixin,
-    mixins.DestroyModelMixin,
     generics.ListAPIView):
-    permission_classes         = []
-    authentication_classes     = []
+    permission_classes         = [permissions.IsAuthenticatedOrReadOnly]
     serializer_class           = StatusSerializers
     passed_id                  = None
+    search_fields              = ('user__username', 'content')
+    ordering_fields            = ('user__username', 'timestamp')
+    queryset                   = Status.objects.all()
 
-    def get_queryset(self):
-        request = self.request
-        qs = Status.objects.all()
-        query = request.GET.get('q')
-        if query is not None:
-            qs = qs.filter(content__icontains=query)
-        return qs
+    # def get_queryset(self):
+    #     request = self.request
+    #     print(request.user)
+    #     qs = Status.objects.all()
+    #     query = request.GET.get('q')
+    #     if query is not None:
+    #         qs = qs.filter(content__icontains=query)
+    #     return qs
 
     def post(self,request, *args, **kwargs):
         return self.create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
 
 # class StatusAPIView(
 #     mixins.CreateModelMixin,
@@ -154,48 +164,6 @@ class StatusAPIView(
 #         passed_id = url_passed_id or new_passed_id or None
 #         self.passed_id = passed_id
 #         return self.destroy(request, *args, **kwargs)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
